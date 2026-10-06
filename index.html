@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bookvoice – listen to your own books</title>
+<meta name="description" content="Open a DRM-free e-book from your phone or computer and have it read aloud. Your books never leave your device.">
+<meta name="theme-color" content="#f6f1e7">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f5d50'/%3E%3Cpath d='M18 20h12c3 0 5 2 5 5v21c0-3-2-5-5-5H18zM46 20H34c-3 0-5 2-5 5v21c0-3 2-5 5-5h12z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12 18 6v12z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18V6l8.5 6z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<div id="app">
+  <header class="top">
+    <div class="brand"><span class="logo" aria-hidden="true">B</span><h1>Bookvoice</h1></div>
+    <div class="top-right">
+      <span id="bookCount" class="muted"></span>
+      <button class="btn small-btn" id="btnSettings" aria-label="Settings">Settings</button>
+    </div>
+  </header>
+
+  <div id="speechBanner" class="banner" hidden></div>
+  <div id="storageWarning" class="banner" hidden>Your browser is blocking storage (maybe a private window), so books will be forgotten when you close this page.</div>
+
+  <main id="library">
+    <section id="emptyState" class="hero">
+      <h2>Listen to your own books</h2>
+      <p>Pick a DRM-free e-book from this device and your phone or computer reads it aloud.</p>
+      <button class="btn primary big" data-act="import"><svg class="ic"><use href="#i-plus"/></svg> Choose a book</button>
+      <p class="hint">EPUB, PDF, Word (.docx), TXT, HTML or Markdown. You can also drop a file here.</p>
+      <p class="hint" id="sizeLimitNote"></p>
+      <p class="hint">No book handy? <a href="samples/alice_in_wonderland_sample.txt" download>Download a free sample</a> and choose it above.</p>
+    </section>
+
+    <section id="shelf" hidden>
+      <div class="shelf-head"><h2>Your library</h2><button class="btn" data-act="import"><svg class="ic"><use href="#i-plus"/></svg> Add book</button></div>
+      <div id="bookGrid" class="grid"></div>
+    </section>
+    <input type="file" id="fileInput" multiple accept=".epub,.pdf,.txt,.text,.md,.markdown,.html,.htm,.xhtml,.docx" hidden>
+  </main>
+
+  <footer class="foot">
+    <p class="privacy">Your books never leave your device.</p>
+    <p class="muted">Protected files (Kindle, Audible, DRM-locked EPUBs) cannot be opened.</p>
+    <p class="credit">Built by Nishant Dhaka as part of the AI course at IIM Lucknow</p>
+  </footer>
+</div>
+
+<!-- mini player -->
+<div id="miniPlayer" class="mini" hidden>
+  <button id="miniOpen" class="mini-open" aria-label="Open player">
+    <span id="miniCover" class="mini-cover"></span>
+    <span class="mini-text"><b id="miniTitle"></b><small id="miniChapter"></small></span>
+    <small id="miniSleep" class="muted"></small>
+  </button>
+  <button id="miniPlay" class="icon-btn round" aria-label="Play"></button>
+</div>
+
+<!-- full player -->
+<div id="playerView" class="player" hidden>
+  <div class="p-top">
+    <button class="icon-btn" id="btnBack" aria-label="Back to library"><svg class="ic"><use href="#i-back"/></svg></button>
+    <div class="p-titles"><b id="pTitle"></b><small id="pAuthor"></small></div>
+    <button class="icon-btn" data-act="chapters" aria-label="Chapters"><svg class="ic"><use href="#i-list"/></svg></button>
+  </div>
+  <div id="voiceWarning" class="banner" hidden></div>
+  <div class="p-chapter"><span id="pChapterNum"></span><b id="readerChapter"></b></div>
+  <div id="readerText" class="reader" tabindex="0" aria-live="off"></div>
+  <div class="p-bottom">
+    <div class="seekwrap">
+      <div id="seekTip" class="seektip" hidden></div>
+      <input type="range" id="seek" min="0" max="100" value="0" aria-label="Position in chapter">
+      <div class="times"><span id="tElapsed">0:00</span><span id="pBookProgress"></span><span id="tLeft">0:00</span></div>
+    </div>
+    <div class="controls">
+      <button class="icon-btn" id="btnPrevChapter" aria-label="Previous chapter"><svg class="ic"><use href="#i-prev"/></svg></button>
+      <button class="icon-btn txt" id="btnBack30" aria-label="Back 30 seconds">−30s</button>
+      <button class="icon-btn" id="btnPrevSentence" aria-label="Previous sentence"><svg class="ic"><use href="#i-back"/></svg></button>
+      <button class="icon-btn round big" id="btnPlay" aria-label="Play"></button>
+      <button class="icon-btn" id="btnNextSentence" aria-label="Next sentence"><svg class="ic"><use href="#i-fwd"/></svg></button>
+      <button class="icon-btn txt" id="btnFwd30" aria-label="Forward 30 seconds">+30s</button>
+      <button class="icon-btn" id="btnNextChapter" aria-label="Next chapter"><svg class="ic"><use href="#i-next"/></svg></button>
+    </div>
+    <div class="chips">
+      <button class="chip" id="btnSpeed" aria-label="Speed">Speed <b id="lblSpeed">1×</b></button>
+      <button class="chip" id="btnVoice" aria-label="Voice">Voice <b id="lblVoice">—</b></button>
+      <button class="chip" id="btnSleep" aria-label="Sleep timer">☾ <b id="lblSleep">Sleep</b></button>
+      <span class="chip-group"><button class="chip small" id="btnTextSmaller" aria-label="Smaller text">A−</button><button class="chip small" id="btnTextBigger" aria-label="Bigger text">A+</button></span>
+    </div>
+    <span id="pCover" hidden></span>
+  </div>
+</div>
+
+<!-- dialogs -->
+<dialog id="dlgChapters"><div class="dlg"><div class="dlg-head"><h3>Chapters</h3><button class="icon-btn" data-close>✕</button></div><ul id="chapterList" class="rows"></ul></div></dialog>
+
+<dialog id="dlgVoice"><div class="dlg">
+  <div class="dlg-head"><h3>Voice</h3><button class="icon-btn" data-close>✕</button></div>
+  <p class="muted" id="voiceCount"></p>
+  <h4 id="voiceLangLabel"></h4><ul id="voiceListMine" class="rows"></ul>
+  <h4>Other languages</h4><ul id="voiceListOther" class="rows"></ul>
+</div></dialog>
+
+<dialog id="dlgSpeed"><div class="dlg">
+  <div class="dlg-head"><h3>Reading speed</h3><button class="icon-btn" data-close>✕</button></div>
+  <p class="big-num" id="speedValue">1.00×</p>
+  <input type="range" id="speedRange" min="0.5" max="3" step="0.05" value="1" aria-label="Reading speed">
+  <div id="speedChips" class="chips wrap">
+    <button class="chip" data-rate="0.75">0.75×</button><button class="chip" data-rate="1">1×</button><button class="chip" data-rate="1.25">1.25×</button>
+    <button class="chip" data-rate="1.5">1.5×</button><button class="chip" data-rate="2">2×</button><button class="chip" data-rate="2.5">2.5×</button>
+  </div>
+</div></dialog>
+
+<dialog id="dlgSleep"><div class="dlg">
+  <div class="dlg-head"><h3>Sleep timer</h3><button class="icon-btn" data-close>✕</button></div>
+  <ul id="sleepList" class="rows">
+    <li><button class="row" data-min="0">Off</button></li><li><button class="row" data-min="15">15 minutes</button></li>
+    <li><button class="row" data-min="30">30 minutes</button></li><li><button class="row" data-min="60">1 hour</button></li>
+    <li><button class="row" data-min="chapter">End of this chapter</button></li>
+  </ul>
+</div></dialog>
+
+<dialog id="dlgSettings"><div class="dlg">
+  <div class="dlg-head"><h3>Settings</h3><button class="icon-btn" data-close>✕</button></div>
+  <label class="setting"><span>Theme</span>
+    <select id="setTheme"><option value="auto">Match my device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+  <label class="setting check"><input type="checkbox" id="setOffline"><span>Offline voices only<small>Some browsers' built-in voices are online voices that receive each sentence as it is read. Tick this to avoid that.</small></span></label>
+  <label class="setting check"><input type="checkbox" id="setFootnotes"><span>Read footnotes</span></label>
+  <label class="setting check"><input type="checkbox" id="setTables"><span>Say "Table skipped" when a table is passed</span></label>
+  <p class="muted small">Keyboard (computer): Space = play/pause · ← → = sentence · Shift+← → = 30 seconds · [ ] = chapter · + − = speed</p>
+  <p class="muted small">Reading stops if your phone locks or the browser goes to the background. Keep the screen on while listening.</p>
+</div></dialog>
+
+<dialog id="dlgConfirm"><form method="dialog" class="dlg">
+  <h3 id="confirmTitle"></h3><p id="confirmText"></p>
+  <div class="dlg-actions"><button class="btn" value="cancel">Cancel</button><button class="btn danger" value="ok" id="confirmOk">Remove</button></div>
+</form></dialog>
+
+<dialog id="dlgMessage"><div class="dlg"><div class="dlg-head"><h3 id="msgTitle"></h3><button class="icon-btn" data-close>✕</button></div><div id="msgBody"></div></div></dialog>
+
+<div id="importOverlay" class="overlay" hidden><div class="import-card"><p class="muted">Adding book…</p><b id="importName"></b><p id="importStep" class="muted"></p><div class="bar"><span id="importBar"></span></div></div></div>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="js/text.js"></script>
+<script src="js/parsers.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/player.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
